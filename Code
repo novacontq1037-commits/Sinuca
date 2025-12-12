@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Sinuca Hack Mod Menu</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Jogo de sinuca autoral com menu de modificações (mod menu!)">
+  <style>
+    html, body {
+      height: 100vh;
+      margin: 0; padding: 0;
+      background: #222;
+      font-family: Arial, sans-serif;
+    }
+    header {
+      background: #216a3a;
+      color: #ffe900;
+      text-align: center;
+      padding: 1.1em 0 .6em 0;
+      box-shadow: 0 2px 14px #000a;
+    }
+    .canvas-container {
+      display: flex;
+      justify-content: center;
+      width: 100vw;
+      max-width: 900px;
+      margin: 1em auto .8em auto;
+    }
+    canvas {
+      background: #154a28;
+      border: 4px solid #333;
+      border-radius: 10px;
+      width: 100%;
+      height: auto;
+      max-width: 800px;
+      touch-action: none;
+      user-select: none;
+      box-shadow: 0 4px 38px #0009;
+    }
+    .mod-menu {
+      background: #184B2eEE;
+      color: #ffe900;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px #000a;
+      padding: 1em 1em .7em 1em;
+      max-width: 330px;
+      margin: auto;
+      margin-bottom: 1.0em;
+      font-size: 1.1em;
+      text-align: left;
+    }
+    .mod-menu label {
+      display: block;
+      margin-bottom: 0.7em;
+      color: #ffffcb;
+    }
+    .mod-menu input[type='checkbox'] {
+      accent-color: #ffe900;
+      margin-right: .7em;
+    }
+    .mod-menu button {
+      margin-top: .5em;
+      display: block;
+      padding: .6em 1.3em;
+      font-size: 1em;
+      color: #fff;
+      background: #216a3a;
+      border: none;
+      border-radius: 7px;
+      box-shadow: 0 1px 7px #0008;
+      cursor: pointer;
+    }
+    .mod-menu button:active {
+      background: #174921;
+    }
+    footer {
+      color: #bbb;
+      text-align: center;
+      font-size: 1em;
+      margin: 1em 0 1.5em 0;
+      opacity: .8;
+    }
+    @media (max-width: 860px) {
+      .canvas-container {
+        max-width: 99vw;
+      }
+      canvas {
+        max-width: 99vw;
+      }
+      .mod-menu {
+        max-width: 95vw;
+        padding: .78em .3em .7em .8em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sinuca – Mod Menu</h1>
+    <p style="font-size:.97em;margin-top:.3em;color:#fff">Seu jogo próprio, com poderes extras!</p>
+  </header>
+  <div class="mod-menu" id="modMenu">
+    <label>
+      <input type="checkbox" id="linhaInfinita" checked>
+      Linha Infinita
+    </label>
+    <label>
+      <input type="checkbox" id="mostrarAlvo" checked>
+      Linha do Alvo
+    </label>
+    <label>
+      <input type="checkbox" id="temaEscuro" checked>
+      Tema Escuro
+    </label>
+    <button id="resetBtn">Resetar Bola Branca</button>
+  </div>
+  <div class="canvas-container">
+    <canvas id="table" width="800" height="400"></canvas>
+  </div>
+  <footer>
+    © 2024 Seu Jogo | Mod Menu para fins educativos.
+  </footer>
+<script>
+const canvas = document.getElementById('table');
+const ctx = canvas.getContext('2d');
+
+const table = { width: 800, height: 400 };
+const ball = { x: 150, y: 200, r: 12 };
+const alvo = { x: 500, y: 200, r: 13 };
+
+let linhaInfinita = true;
+let mostrarAlvo = true;
+let temaEscuro = true;
+
+function aplicarTema() {
+  if(temaEscuro) {
+    document.body.style.background = "#222";
+    canvas.style.background = "#154a28";
+  } else {
+    document.body.style.background = "#eaf6dd";
+    canvas.style.background = "#b0e594";
+  }
+}
+aplicarTema();
+
+function resizeCanvas() {
+  const vw = Math.min(window.innerWidth, 820);
+  canvas.style.width = vw + "px";
+  canvas.style.height = (vw/2) + "px";
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+let aimX = 300, aimY = 150;
+
+function drawTable() {
+  ctx.fillStyle = temaEscuro ? "#1a6134" : "#c2ecab";
+  ctx.fillRect(0,0,table.width, table.height);
+}
+function drawBall(x, y, r, color="#fff") {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, 2 * Math.PI);
+  ctx.fillStyle = color;
+  ctx.shadowColor = "#000";
+  ctx.shadowBlur = 3;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "#aaa";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  if(color==="#fff") { // Bola branca "especial"
+    ctx.beginPath();
+    ctx.arc(x-3, y-3, 3, 0, 2*Math.PI);
+    ctx.fillStyle = "#e10";
+    ctx.fill();
+  }
+}
+
+function drawAimingLine() {
+  if (!linhaInfinita) return;
+  let x = ball.x, y = ball.y;
+  let dx = aimX - ball.x, dy = aimY - ball.y;
+  let len = Math.sqrt(dx*dx+dy*dy);
+  if(len === 0) return;
+  dx /= len; dy /= len;
+  let maxBounces = 8;
+  ctx.save();
+  ctx.setLineDash([18, 13]);
+  ctx.strokeStyle = "#ffe900";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+
+  for(let i=0; i<maxBounces; i++){
+    // check collision with alvo:
+    if (mostrarAlvo) {
+      let hit = lineHitsBall(x, y, dx, dy, alvo);
+      if(hit && hit.t < 1e6) {
+        ctx.lineTo(hit.x, hit.y);
+        ctx.stroke();
+        ctx.restore();
+        return;
+      }
+    }
+    let tX = dx>0 ? (table.width-ball.r-x)/dx : (0+ball.r-x)/dx;
+    let tY = dy>0 ? (table.height-ball.r-y)/dy : (0+ball.r-y)/dy;
+    let t = Math.min(tX, tY, 1e6);
+    let nx = x + dx*t, ny = y + dy*t;
+    ctx.lineTo(nx, ny);
+
+    // Rebote
+    if (tX < tY) { // lateral
+      dx *= -1;
+      x = nx;
+      y += dy*tX;
+    } else { // cima/baixo
+      dy *= -1;
+      y = ny;
+      x += dx*tY;
+    }
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+function drawAimToAlvo() {
+  if(!mostrarAlvo) return;
+  ctx.save();
+  ctx.setLineDash([8,6]);
+  ctx.strokeStyle = "#33cdfa";
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(ball.x, ball.y);
+  ctx.lineTo(alvo.x, alvo.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Linha para colisão com alvo (parar linha infinita)
+function lineHitsBall(bx, by, dx, dy, alvo) {
+  const fx = bx - alvo.x, fy = by - alvo.y;
+  const a = dx*dx + dy*dy;
+  const b = 2 * (fx * dx + fy * dy);
+  const c = fx*fx + fy*fy - Math.pow(alvo.r+ball.r, 2);
+  const disc = b*b - 4*a*c;
+  if(disc < 0) return null;
+  const t = (-b - Math.sqrt(disc)) / (2*a);
+  if(t > 0) {
+    return { x: bx + dx * t, y: by + dy * t, t: t };
+  }
+  return null;
+}
+
+function render(){
+  drawTable();
+  drawAimingLine();
+  drawAimToAlvo();
+  drawBall(alvo.x, alvo.y, alvo.r, "#91f");
+  drawBall(ball.x, ball.y, ball.r, "#fff");
+}
+
+// Input: mouse/toque mobile
+function handleInput(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = table.width / rect.width;
+  const scaleY = table.height / rect.height;
+  aimX = (clientX - rect.left) * scaleX;
+  aimY = (clientY - rect.top) * scaleY;
+  render();
+}
+canvas.addEventListener('mousemove', e=>{
+  handleInput(e.clientX, e.clientY);
+});
+canvas.addEventListener('touchmove', e=>{
+  if(e.touches.length>0) {
+    const t = e.touches[0];
+    handleInput(t.clientX, t.clientY);
+  }
+  e.preventDefault();
+}, {passive:false});
+
+// MOD MENU EVENTOS
+document.getElementById('linhaInfinita').onchange = (e)=>{
+  linhaInfinita = e.target.checked;
+  render();
+};
+document.getElementById('mostrarAlvo').onchange = (e)=>{
+  mostrarAlvo = e.target.checked;
+  render();
+};
+document.getElementById('temaEscuro').onchange = (e)=>{
+  temaEscuro = e.target.checked;
+  aplicarTema();
+  render();
+};
+document.getElementById('resetBtn').onclick = ()=>{
+  ball.x = 150, ball.y = 200;
+  aimX = 300, aimY = 150;
+  render();
+};
+
+render();
+</script>
+</body>
+</html>
